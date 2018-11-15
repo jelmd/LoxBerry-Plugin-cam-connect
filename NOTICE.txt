@@ -1,0 +1,32 @@
+The code of this project is base on the LoxBerry Plugin 'cam-connect' on
+https://github.com/Woersty/LoxBerry-Plugin-cam-connect, which is licensed
+under the Apache License Version 2.0 terms (http://www.apache.org/licenses/).
+
+However, to get back modifications/enhancements which are made to the sources
+of this project and to discourage patent litigations against its developers,
+this project is licensed under CDDL 1.1 terms (see LICENSE).
+To find out exactly, which modifications have been made to the original source,
+you may clone the repository using
+    git clone https://github.com/Woersty/LoxBerry-Plugin-cam-connect.git
+and compare the files in questions with the corresponding ones of this project,
+e.g. using something like "diff -wu $orginal_file $modified_file".
+Usually the related files contain a note wrt. to its origin.
+
+When distributing Covered Code, include the CDDL HEADER shown below in each
+new file and include the License file at LICENSE.txt.
+
+If applicable, add the following below this CDDL HEADER, with the
+fields enclosed by brackets "[]" replaced with your own identifying
+information: Portions Copyright [yyyy] [name of copyright owner]
+
+
+CDDL HEADER:
+
+# The contents of this file are subject to the terms of the
+# Common Development and Distribution License (the "License") version 1.1!
+# You may not use this file except in compliance with the License.
+#
+# See LICENSE.txt and NOTICE.txt included in this distribution for the specific
+# language governing permissions and limitations under the License.
+#
+# Copyright [yyyy] [name of copyright owner]

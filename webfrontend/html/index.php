@@ -1,13 +1,31 @@
 <?php
-#####################################################################################################
-# Loxberry Plugin to change the HTTP-Authentication of a Trendnet TV-IP310PI Surveillance IP-Cam
-# from Digest to none to be used in the Loxone Door-Control-Object.
-# Version: 28.10.2018 19:06:58
-#####################################################################################################
+
+# This file is based on the Apache 2.0 licensed version of the project
+# https://raw.githubusercontent.com/Woersty/LoxBerry-Plugin-cam-connect/
+# file v2018.10.28/webfrontend/html/index.php .
+# It has been modified to accomodate changes wrt. the webUI in use as well as
+# adjust style (max. 80 cpl), fix minor errors, and add new features like
+# cropping). For more details have a look at the NOTICE.txt file.
+
+# The contents of this file are subject to the terms of the
+# Common Development and Distribution License (the "License") version 1.1!
+# You may not use this file except in compliance with the License.
+#
+# See LICENSE.txt and NOTICE.txt included in this distribution for the specific
+# language governing permissions and limitations under the License.
+#
+# Copyright 2018 Jens Elkner (jel+loxberry-src@cs.ovgu.de)
+
+
+###############################################################################
+# Loxberry Plugin to change the HTTP-Authentication of a Trendnet TV-IP310PI
+# Surveillance IP-Cam from Digest to none to be used in the
+# Loxone Door-Control-Object.
+###############################################################################
 
 // Error Reporting off
-error_reporting(~E_ALL & ~E_STRICT);     // Keine Fehler reporten (auch nicht E_STRICT)
-ini_set("display_errors", false);        // Fehler nicht direkt via PHP ausgeben
+error_reporting(~E_ALL & ~E_STRICT);	// Keine Fehler reporten (auch nicht E_STRICT)
+ini_set("display_errors", true);		// Fehler nicht direkt via PHP ausgeben
 require_once "loxberry_system.php";
 require_once "loxberry_log.php";
 $L = LBSystem::readlanguage("language.ini");
@@ -59,19 +77,23 @@ function debug($message = "", $loglevel = 7, $raw = 0)
 		        error_log( strftime("%A") ." PHP: ".$message );
 		        break;
 		}
-		if ( $loglevel < 4 ) 
+		if ( $loglevel < 4 )
 		{
 		  if ( isset($message) && $message != "" ) notify ( LBPPLUGINDIR, $L['CC.MY_NAME'], $message);
 		}
 	}
 	return;
 }
-
 // Check for GD Library
-if ( !function_exists (@ImageCreate) ) 
+if ( !function_exists (@ImageCreate) )
 {
 	debug($L["ERRORS.ERROR_IMAGE_FUNCTION_MISSING"],8);
 	die($L["ERRORS.ERROR_IMAGE_FUNCTION_MISSING"]);
+}
+if ( !function_exists (@curl_init) )
+{
+	debug($L["ERRORS.ERROR_INIT_CURL"],8);
+	die($L["ERRORS.ERROR_INIT_CURL"]);
 }
 
 $plugin_config_file = LBPCONFIGDIR."/cam-connect.cfg";
@@ -127,11 +149,11 @@ $camera_models_file = LBPDATADIR."/camera_models.dat";
 debug("Read cameras from ".$camera_models_file,7);
 $lines_of_text = file ( $camera_models_file );
 
-  
+
   (isset($plugin_cfg['CAM_MODEL'.$cam]))?$cam_model=intval($plugin_cfg['CAM_MODEL'.$cam]):error_image($L["ERRORS.ERROR_READING_CAM_MODEL"]);
   debug("Camera model for camera $cam is ".$cam_model,7);
 
-  foreach ($lines_of_text as $line_num => $line_of_text) 
+  foreach ($lines_of_text as $line_num => $line_of_text)
   {
 	debug("Read cameras line $line_num: ".$line_of_text,7);
     $line_of_text = preg_replace('/\r?\n|\r/','', $line_of_text);
@@ -158,27 +180,12 @@ $lines_of_text = file ( $camera_models_file );
     }
   }
   if ( $plugin_cfg['model'] == "" || $plugin_cfg['httpauth'] == "" || $plugin_cfg['imagepath'] == "" )
-  {      
+  {
   	error_image($L["ERRORS.ERROR_READING_CAMS"]);
   }
 
-# Check for deprecated values
-if (isset($_GET['email'])) 			{ debug($L["ERRORS.ERROR_DEPRECATED"]." email",4); 			}
-if (isset($_GET['cam-name']))		{ debug($L["ERRORS.ERROR_DEPRECATED"]." cam-name",4);		}
-if (isset($_GET['image_resize'])) 	{ debug($L["ERRORS.ERROR_DEPRECATED"]." image_resize",4);	}
-if (isset($_GET['email_resize']))	{ debug($L["ERRORS.ERROR_DEPRECATED"]." image_resize",4);	}
-if (isset($_GET['user']))			{ debug($L["ERRORS.ERROR_DEPRECATED"]." user",4);			}
-if (isset($_GET['pass']))			{ debug($L["ERRORS.ERROR_DEPRECATED"]." pass",4);			}
-if (isset($_GET['kamera']))			{ debug($L["ERRORS.ERROR_DEPRECATED"]." kamera",4);			}
-if (isset($_GET['port']))			{ debug($L["ERRORS.ERROR_DEPRECATED"]." port",4);			}
-if (isset($_GET['cam-model']))		{ debug($L["ERRORS.ERROR_DEPRECATED"]." cam-model",4);		}
-if (isset($_GET['email_to']))		{ debug($L["ERRORS.ERROR_DEPRECATED"]." email_to",4);		}
-if (isset($_GET['no_email']))		{ debug($L["ERRORS.ERROR_DEPRECATED"]." no_email",4);		}
-# Check for values causing trouble
-if (isset($_GET['stream']))			{ debug($L["ERRORS.ERROR_GET_PARAM_STREAM"],4);				}
-
 debug("Read LoxBerry global eMail config",7);
-if ($plugin_cfg['CAM_EMAIL_USED_CB'.$cam] == 1) 
+if ($plugin_cfg['CAM_EMAIL_USED_CB'.$cam] == 1)
 {
   $mail_config_file   = LBSCONFIGDIR."/mail.cfg";
   debug("Parameter CAM_EMAIL_USED_CB is set for camera $cam, read eMail config from ".$mail_config_file,7);
@@ -245,7 +252,6 @@ function get_image($retry=0)
 	curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
 	curl_setopt($curl, CURLOPT_USERPWD, $plugin_cfg['user'].":".$plugin_cfg['pass']);
 	curl_setopt($curl, CURLOPT_URL, $plugin_cfg['url']);
-	debug("Check for 'Digitus DN-16049' camera model",7);
 	if ( $plugin_cfg['model'] == "DN-16049" )
 	{
 	  debug("It's a 'Digitus DN-16049' camera - do some exceptional things to get real image path",7);
@@ -273,13 +279,13 @@ function get_image($retry=0)
 	  $picture = curl_exec($curl) or debug($L["ERRORS.ERROR_CURL"]." ".$plugin_cfg['url'],3);
 	    if ($curl) { curl_close($curl); }
 
-		if( mb_strlen($picture) < 2000 && $retry <= 1) 
+		if(strlen($picture) < 2000 && $retry <= 1)
 		{
 		  debug($L["ERRORS.ERROR_IMAGE_NOT_OK_RETRY"]."\n".$picture,7);
 		  sleep (.25);
 		  $picture = get_image($retry + 1);
 		}
-		if( mb_strlen($picture) < 2000 && $retry <= 2) 
+		if(strlen($picture) < 2000 && $retry <= 2)
 		{
 		  debug($L["ERRORS.ERROR_IMAGE_NOT_OK_LAST_RETRY"],4);
 		  debug($L["ERRORS.ERROR_IMAGE_NOT_OK_LAST_RETRY_DEBUG"]."\n".$picture,7);
@@ -296,8 +302,8 @@ function get_image($retry=0)
 		  	debug("Type: ".$type." Size: ".strlen($picture)." Bytes",7);
 			if (!isset($_GET['stream']))
 			{
-			  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode($picture))."'></>",7);
-			  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode($picture))."'></>",7,1);
+				//debug("<img src='data:".$type.";base64,".base64_encode($picture)."' />",7);
+				//debug("<img src='data:".$type.";base64,".base64_encode($picture)."' />",7,1);
 			}
 			else
 			{
@@ -307,7 +313,8 @@ function get_image($retry=0)
 		}
 	}
 	debug("Check, if the picture has less than 2000 bytes - then it's no picture.",7);
-	if(mb_strlen($picture) < 2000)
+
+	if(strlen($picture) < 2000)
 	{
 	  debug($L["ERRORS.ERROR_IMAGE_TOO_SMALL"]."\n".htmlentities($picture),5);
 	  error_image($L["ERRORS.ERROR_IMAGE_TOO_SMALL"]."\n".$picture);
@@ -341,20 +348,20 @@ function stream()
 	    	ob_end_flush();
 			ob_implicit_flush(1);
 	        debug("Start looping stream now, max $maxloops times",7);
-				if ( substr($_SERVER['SERVER_SOFTWARE'],0,6) == "Apache") 
+				if ( substr($_SERVER['SERVER_SOFTWARE'],0,6) == "Apache")
 				{
 				    while (true == true)
 				    {
 						print "Content-type: image/jpeg\n\n";
 						$picture = get_image();
 						// Try again if last call failed e.g. device busy
-						if(mb_strlen($picture) < 2000)
+						if(strlen($picture) < 2000)
 						{
 					        debug("Fail, try again",7);
 							$picture = get_image();
 						}
 						// Try again if last call failed - but last time we try it...
-						if(mb_strlen($picture) < 2000)
+						if(strlen($picture) < 2000)
 						{
 					        debug("Fail again, try last time",7);
 							$picture = get_image();
@@ -372,24 +379,24 @@ function stream()
 						print "Content-type: image/jpeg\n\n";
 						$picture = get_image();
 						// Try again if last call failed e.g. device busy
-						if(mb_strlen($picture) < 2000)
+						if(strlen($picture) < 2000)
 						{
-					        debug("Fail, try again",7);
+					        debug("Fail, try again", 7);
 							$picture = get_image();
 						}
 						// Try again if last call failed - but last time we try it...
-						if(mb_strlen($picture) < 2000)
+						if(strlen($picture) < 2000)
 						{
-					        debug("Fail again, try last time",7);
+					        debug("Fail again, try last time", 7);
 							$picture = get_image();
 						}
-				        debug("Send frame $maxloops to ".$_SERVER['REMOTE_ADDR'],7);
+				        debug("Send frame $maxloops to ".$_SERVER['REMOTE_ADDR'], 7);
 						echo $picture;
 						print "--$boundary\n";
 						$maxloops = $maxloops - 1;
 					}
-				}			
-	        debug("Exit normally after stream mode reached max loop count: ".$maxloops,7);
+				}
+	        debug("Exit normally after stream mode reached max loop count: ".$maxloops, 7);
 			exit;
 }
 
@@ -399,25 +406,23 @@ function main()
 	debug("Function 'main' reached",7);
 	debug("Call get_image() fist time",7);
 	$picture = get_image();
-  if ($plugin_cfg["CAM_WATERMARK_CB".$cam] == 1)
+  if ($plugin_cfg["WATERMARK".$cam] == 1)
   {
-    debug("Parameter CAM_WATERMARK_CB is set to 1 so I have to put the overlay LoxBerry on it",7);
 	$watermarkfile = LBPHTMLDIR."/watermark.png";
-    debug("The overlay file will be: ".$watermarkfile,7);
+    debug("WATERMARK == 1: Using ".$watermarkfile, 7);
     $watermarked_picture = imagecreatefromstring($picture) or error_image($L["ERRORS.ERROR_CREATE_WATERMARK_UNDERLAY"]);
     list($ix, $iy, $type, $attr) = getimagesizefromstring($picture);
     if ($type <> 2) error_image($L["ERRORS.ERROR_BAD_WATERMARK_IMAGETYPE"]);
-    debug("Reading watermark.png into variable and applying overlay to camera image.",7);
     $stamp = imagecreatefrompng($watermarkfile) or error_image($L["ERRORS.ERROR_CREATE_WATERMARK_OVERLAY"]);
     $sx    = imagesx($stamp);
     $sy    = imagesy($stamp);
-    debug("Target image width/height: ".$sx."/".$sy,7);
+    debug("Target image width/height: ".$sx."/".$sy, 7);
     $logo_width  = 120;
     $logo_height = 86;
-    debug("Logo width/height: ".$logo_width."/".$logo_height,7);
+    debug("Logo width/height: ".$logo_width."/".$logo_height, 7);
     $margin_right  = $ix - $logo_width - 20;
     $margin_bottom = 20;
-    debug("Margin right/bottom: ".$margin_right."/".$margin_bottom,7);
+    debug("Margin right/bottom: ".$margin_right."/".$margin_bottom, 7);
     ImageCopyResized($watermarked_picture, $stamp, $ix - $logo_width - $margin_right, $iy - $logo_height - $margin_bottom, 0, 0, $logo_width, $logo_height, $sx, $sy) or error_image($L["ERRORS.ERROR_MERGE_WATERMARK_LAYERS"]);
     ImageDestroy($stamp);
     ob_start();
@@ -427,12 +432,12 @@ function main()
 	{
 		if (!isset($_GET['stream']))
 		{
-		  	debug("Converted picture:\n<img src='data:image/jpeg;base64,".chunk_split(base64_encode($picture))."'></>",7);
-		  	debug("Converted picture:\n<img src='data:image/jpeg;base64,".chunk_split(base64_encode($picture))."'></>",7,1);
+			//debug("Converted picture:\n<img src='data:image/jpeg;base64,".base64_encode($picture)."' />",7);
+			//debug("Converted picture:\n<img src='data:image/jpeg;base64,".base64_encode($picture)."' />",7,1);
 		}
 		else
 		{
-		  	debug("Converted picture:\n[not shown in stream mode]",7);
+			debug("Converted picture:\n[not shown in stream mode]", 7);
 		}
 
 	}
@@ -441,7 +446,7 @@ function main()
   }
   else
   {
-	debug("Parameter CAM_WATERMARK_CB is set to 0 so I don't have to put the overlay LoxBerry on it",7);
+	debug("WATERMARK == 0 => no LoxBerry logo", 7);
   }
 
   debug("Reading CAM_IMAGE_RESIZE value from config file",7);
@@ -492,7 +497,7 @@ list($picture ,$resized_picture ) = main();
 	header("Content-Length: $size");
 	ob_end_flush(); // Strange behaviour, will not work
 	flush(); // Unless both are called !
-	// Do processing here 
+	// Do processing here
   }
   else
   {
@@ -510,8 +515,8 @@ list($picture ,$resized_picture ) = main();
 		debug("Type: ".$type." Size: ".strlen($resized_picture)." Bytes",7);
 		if (!isset($_GET['stream']))
 		{
-		  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode($resized_picture))."'></>",7);
-		  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode($resized_picture))."'></>",7,1);
+			//debug("<img src='data:".$type.";base64,".base64_encode($resized_picture)." />",7);
+			//debug("<img src='data:".$type.";base64,".base64_encode($resized_picture)."' />",7,1);
 		}
 		else
 		{
@@ -519,14 +524,14 @@ list($picture ,$resized_picture ) = main();
 		}
 	}
 	ob_end_clean();
-	ignore_user_abort(true); 
+	ignore_user_abort(true);
 	header("Connection: close");
 	ob_start();
 	echo $resized_picture;
 	$size = ob_get_length();
 	header("Content-Length: $size");
-	ob_end_flush(); 
-	flush(); 
+	ob_end_flush();
+	flush();
   }
 
 	debug("############# Normal mode done ######################",7);
@@ -573,10 +578,10 @@ function error_image ($error_msg)
   $line_nb			= "";
   foreach (explode("\n",$error_msg ) as $err_line)
   {
-  	if ($err_line != "") 
+	if ($err_line != "")
   	{
 		$err_line = str_ireplace(array("\r\n","\r","\n",'\r\n','\r','\n'),'', $err_line);
-	  	$line_pos = $line_pos + $line_height; 
+		$line_pos = $line_pos + $line_height;
 		ImageString ($error_image, 20, 10, $line_pos, $line_nb.$err_line, $text_color);
 	    if ( $line_nb == "" ) $text_color = ImageColorAllocate ($error_image, 128,128,128);
 	  	$line_nb++;
@@ -594,8 +599,8 @@ function error_image ($error_msg)
 		debug("Type: ".$type." Size: ".strlen(ImageJPEG ($error_image))." Bytes",7);
 		if (!isset($_GET['stream']))
 		{
-		  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode(ImageJPEG ($error_image)))."'></>",7);
-		  	 debug("<img src='data:".$type.";base64,".chunk_split(base64_encode(ImageJPEG ($error_image)))."'></>",7,1);
+			//debug("<img src='data:".$type.";base64,".base64_encode(ImageJPEG ($error_image))."'></>",7);
+			//debug("<img src='data:".$type.";base64,".base64_encode(ImageJPEG ($error_image))."'></>",7,1);
 		}
 		else
 		{
@@ -611,15 +616,15 @@ function send_mail_pic($picture)
 {
   debug("Function send_mail_pic reached",7);
   global $datetime, $plugin_cfg, $cam_name, $mail_cfg, $L, $cam, $plugindata;
-  
+
 	// Prevent sending eMails as long as stream is read from Miniserver
 	// 10 s delay minimum
 	$lockfilename = "/tmp/cam_connect_".$cam;
 	debug("Check if lockfile $lockfilename for cam $cam exists",7);
-	 
+
 	if (file_exists($lockfilename)) {
 	    debug( "The file $lockfilename exists.",7);
-	    if (filectime($lockfilename)) 
+	    if (filectime($lockfilename))
 		{
 			if ( ($datetime->getTimestamp() - filectime($lockfilename)) > 10  )
 			{
@@ -634,15 +639,15 @@ function send_mail_pic($picture)
 				exit;
 			}
 		}
-	} 
-	else 
+	}
+	else
 	{
 	  debug( "The file $lockfilename doesn't exists, create it.",7);
       $handle = fopen($lockfilename, "w") or debug($L["ERRORS.ERROR_OPEN_LOCKFILE_EMAIL"]." ".$lockfilename,3);
 	  fwrite($handle, $datetime->getTimestamp() ) or debug($L["ERRORS.ERROR_WRITE_LOCKFILE_EMAIL"]." ".$lockfilename,3);
 	  fclose($handle);
 	}
-  
+
   if ( isset($mail_cfg['SMTP']['EMAIL']) )
   {
   	 $mailFrom =	trim(str_ireplace('"',"",$mail_cfg['SMTP']['EMAIL']));
@@ -690,7 +695,7 @@ if ( isset($plugin_cfg['CAM_EMAIL_MULTIPICS'.$cam]))
 	$pics = substr($plugin_cfg['CAM_EMAIL_MULTIPICS'.$cam],0,1);
 	$delay = substr($plugin_cfg['CAM_EMAIL_MULTIPICS'.$cam],1,1);
 	debug("Send $pics picture(s) with $delay s delay.",7);
-}		
+}
 else
 {
 	debug("Parameter CAM_EMAIL_MULTIPICS missing, use default: Send 1 picture.",7);
@@ -705,7 +710,7 @@ debug($L["ERROR_SEND_MAIL_INFO"]." From: ".$mailFromName.htmlentities(" <".$mail
 
 $html = "From: ".$mailFromName." <".$mailFrom.">
 To: ".$mailTo."
-Subject: ".utf8_encode($emailSubject)." 
+Subject: ".utf8_encode($emailSubject)."
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
  boundary=\"------------".$outer_boundary."\"
@@ -732,13 +737,13 @@ Content-Transfer-Encoding: 8bit
     <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">
   </head>
   <body text=\"#000000\" bgcolor=\"#FFFFFF\">
-  
+
     <font face=\"Verdana\">".$plugin_cfg["CAM_EMAIL_BODY".$cam]."<br>";
 $htmlpicdata="";
-for ($i = 1; $i <= $pics; $i++) 
+for ($i = 1; $i <= $pics; $i++)
 {
 	debug("Add picture $i of $pics.",7);
-    if ( $i > 1 ) 
+    if ( $i > 1 )
     {
 	    debug("Wait $delay seconds before getting next picture.",7);
 		sleep($delay);
@@ -756,7 +761,7 @@ for ($i = 1; $i <= $pics; $i++)
     $inline  =  'attachment';
     $email_image_part ="\n";
   }
-	
+
      debug("Boundary for picture $i of $pics is: ".$outer_boundary,7);
 	 $newwidth = $plugin_cfg['CAM_EMAIL_RESIZE'.$cam];
 	 debug("Check if resize value is valid.",7);
@@ -791,7 +796,7 @@ Content-Disposition: ".$inline."; filename=\"".$plugin_cfg['EMAIL_FILENAME']."_"
 }
 
 $html .= $htmlpic;
-		
+
 $html .=" \n--<br>".$plugin_cfg["CAM_EMAIL_SIGNATURE".$cam]." </font></body></html>\n\n";
 
 $html .= $htmlpicdata;

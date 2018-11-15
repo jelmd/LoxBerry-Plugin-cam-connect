@@ -1,0 +1,72 @@
+/**
+ * The contents of this file are subject to the terms of the
+ * Common Development and Distribution License (the "License") version 1.1!
+ * You may not use this file except in compliance with the License.
+ *
+ * See LICENSE.txt and NOTICE.txt included in this distribution for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * Copyright 2018 Jens Elkner (jel+loxberry-src@cs.ovgu.de)
+ */
+
+#page_content  {
+	text-align: center;
+}
+
+#cam_headline, #no_cam_headline {
+	margin-top: 3em;
+	font-weight: bold;
+}
+.camdiv {
+	margin-bottom: 3em;
+	display: inline-block;
+}
+.camdiv > div:first-child {
+	padding: 10px;
+	border: 1px solid black;
+	border-radius: 5px;
+	background-color: rgba(109,142,32,.2);
+	display: inline-block;
+}
+.camdiv > div:first-child > div:first-child {
+	background-color: rgba(109,1,132,.5);
+}
+.camno {
+	font-size: large;
+	font-weight: bold;
+}
+.subpanel {
+	padding:10px;
+	border: 1px solid black;
+	border-radius: 0px 0px 8px 8px;
+	background-color: #ffff9080;
+}
+
+#logArea {
+	display:table;
+	padding:10px;
+	border: 1px solid black;
+	border-radius: 5px;
+	background-color: rgba(19,172,132,.2);
+}
+label {
+	text-align: left;
+	margin-top: 8px;
+	margin-bottom: -8px;
+	margin-left: 0
+}
+
+.loxCamUrl {
+	font-size: small;
+	font-weight: bold;
+}
+.loxCamUrl > span {
+	color: #4040FF;
+}
+
+.version {
+	font-size: small;
+}
+#btnok {
+	text-align: center;
+}
