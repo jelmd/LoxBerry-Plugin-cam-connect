@@ -20,8 +20,8 @@ my $nname;
 if ( param("package") ne "" )
 {
 	print "Content-Type: text/html\n\n";
-	$package = param("package");
-	$nname   = param("name");
+	$package = param('package');
+	$nname   = param('name');
 	LOGDEB "package: $package ; nname = $nname";
 } elsif ($ARGV[0] ne "") {
 	$package = $ARGV[0];
@@ -29,7 +29,7 @@ if ( param("package") ne "" )
 	LOGDEB "package: $package ; nname = $nname";
 } else {
 	print "Content-Type: text/plain\n\nInvalid request.";
-	LOGDEB "Invalid request.";
+	LOGDEB 'Invalid request.';
 	exit 1;
 }
 print LoxBerry::Log::get_notifications_html($package , $nname);

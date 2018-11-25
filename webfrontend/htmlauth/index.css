@@ -9,64 +9,187 @@
  * Copyright 2018 Jens Elkner (jel+loxberry-src@cs.ovgu.de)
  */
 
-#page_content  {
+#notifblock h5 {
+	display: none;
+}
+
+main {
+	display: block;
+}
+
+#main_form > div {
 	text-align: center;
 }
 
-#cam_headline, #no_cam_headline {
-	margin-top: 3em;
+h1 {
+	margin: 1.5em 0 0.5em 0;
+}
+h1::before {
+	content: "- ";
+}
+h1::after {
+	content: " -";
+}
+fieldset.cfgpanel {
+	display: block;
+}
+#main_form legend {
+	margin: 0.5ex 1ex;
+	padding: 0 0.5ex;
+	font-size: inherit;
 	font-weight: bold;
+	border-radius: 1ex;
+	border-style: solid;
+	border-width: 2px;
+	background: #ffffe8;
 }
-.camdiv {
+fieldset.cfgpanel {
 	margin-bottom: 3em;
-	display: inline-block;
-}
-.camdiv > div:first-child {
-	padding: 10px;
+	padding: 1ex;
 	border: 1px solid black;
 	border-radius: 5px;
-	background-color: rgba(109,142,32,.2);
-	display: inline-block;
+	background-color: #6D8E2033;
 }
-.camdiv > div:first-child > div:first-child {
-	background-color: rgba(109,1,132,.5);
-}
-.camno {
+
+.camtitle {
 	font-size: large;
 	font-weight: bold;
+	text-align: center;
 }
-.subpanel {
-	padding:10px;
+
+table {
+	width: 100%;
+}
+tr > td:first-child {
+	width: 1%
+}
+td {
+	vertical-align: middle;
+}
+fieldset.cfgpanel > div, td.mail_subject {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: flex-start;
+	align-items: center;
+	margin: 1ex 0;
+}
+
+td.mail_subject {
+	margin: inherit;
+}
+
+.cfgpanel {
+	margin: 1ex 0;
+}
+
+/* The jquery bullshit is a pain and prevents proper layout */
+fieldset.cfgpanel div, fieldset.cfgpanel label,
+fieldset.cfgpanel input, fieldset.cfgpanel select {
+	margin: 0;
+	padding: 0;
+	min-height: auto;
+	font-size: inherit;
+}
+
+fieldset.cfgpanel label {
+	margin: 0 1ex 0 0;
+}
+fieldset.cfgpanel input , fieldset.cfgpanel .ui-select > div,
+fieldset.cfgpanel label {
+	padding: 0.5ex 1ex;
+}
+
+div.ui-select > div > span {
+	padding-right: 32px;	/* the jquery dropdown icon is 22x22px */
+}
+
+.ui-checkbox input {
+	position: inherit;
+	vertical-align: middle;
+	left: auto;
+/*
+	top: inherit;
+	width: auto;
+	height: auto;
+*/
+}
+
+fieldset.subcfg {
+	margin: 0 0 1ex 2em;
 	border: 1px solid black;
-	border-radius: 0px 0px 8px 8px;
-	background-color: #ffff9080;
+	background-color: #FFFF9080;
+}
+
+#mail_subject input {
+	display: inline-block;
+}
+
+div.loxoneTip  {
+	background-color: #6D8E201a;
+	border-radius: 5px;		/* same as for cfgpanel */
+}
+
+div.loxoneTip > div:first-child {
+	min-width: auto;
+	font-weight: bold;
+	margin: 1em;
+	align-self: flex-start;
+}
+
+fieldset.camdiv > div:last-child > * {
+	min-width: auto;
+	width: 1%;
+	flex-grow: 1;
+	font-size: 83%;
+}
+fieldset.camdiv > div:last-child > :last-child {
+	margin-right: 0;
+}
+
+#del_log > span:nth-child(2)  {
+	background-color: yellow;
+}
+#del_log > span:nth-child(3)  {
+	background-color: green;
+}
+#del_log > span:nth-child(4)  {
+	background-color: red;
 }
 
 #logArea {
-	display:table;
-	padding:10px;
+	padding: 1ex;
 	border: 1px solid black;
 	border-radius: 5px;
-	background-color: rgba(19,172,132,.2);
-}
-label {
-	text-align: left;
-	margin-top: 8px;
-	margin-bottom: -8px;
-	margin-left: 0
+	background-color: #13AC8433;
 }
 
 .loxCamUrl {
-	font-size: small;
 	font-weight: bold;
+	text-align: center;
 }
 .loxCamUrl > span {
 	color: #4040FF;
 }
 
+.version::before {
+	content: "v";
+}
 .version {
 	font-size: small;
 }
-#btnok {
+#btnok, #error_page, #success_page {
 	text-align: center;
+}
+
+aside dt {
+	font-weight: bold;
+	margin-top: 1ex;
+}
+aside dt.next {
+	padding-top: 1ex;
+	margin-top: 1ex;
+	border-top: solid 1px;
+}
+aside dd {
+	margin-left: 1em;
 }

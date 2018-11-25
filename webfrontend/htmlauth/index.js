@@ -22,9 +22,9 @@ jQuery.fn.extend({
 function initCB(num, email, email_opt) {
 	var changeFn = function(ev) {
 		var cid = '#' + ev.target.id;
-		var vid = cid.replace('_checkbox', '');
+		var vid = cid.replace('CB_', '');
 		$(vid).val(ev.target.checked ? 1 : 0);
-		if (cid.startsWith('#CAM_EMAIL_USED_CB')) {
+		if (cid.startsWith('#CB_MAIL') && cid.charAt(8) != '_') {
 			if (ev.target.checked) {
 				$(".cam_email" + num).fadeIn();
 				for (let s of email_opt) {
@@ -38,17 +38,16 @@ function initCB(num, email, email_opt) {
 			}
 		}
 	};
-	var all_cb = [ 'WATERMARK',
-		'CAM_NO_EMAIL_CB', 'CAM_EMAIL_INLINE_CB', 'CAM_EMAIL_USED_CB'];
+	var all_cb = ['WATERMARK', 'MAIL', 'MAIL_IMG_INLINE'];
 
 	for (let name of all_cb) {
-		var cid = '#' + name + '_checkbox' + num;
+		var cid = '#CB_' + name + num;
 		$(cid).on('change', changeFn).trigger('change');
 	}
 }
 
 function initLists(num) {
-	$("#CAM_NAME" + num).keyup(function(event) {
+	$('#NAME' + num).keyup(function(event) {
 		$('#CAM_LIST option[value="#camdiv' + num + '"]')
 			.text('#' + num + ' - ' + $(this).val());
 		supress_change = true;
@@ -56,13 +55,14 @@ function initLists(num) {
 		supress_change = false;
 	});
 
-	$("#camdiv" + num + " :input").on('change', function(event) {
+	$('#camdiv' + num + ' :input').on('change', function(event) {
 		$("#btntest" + num).prop('disabled', true);
-		$("#btntestsavehint" + num).hide();
+	});
+	$('#camdiv' + num + ' button.saveB').on('click', function(event) {
+		$('#saveformdata').val(1); 
 	});
 
-	var selects = ['CAM_MODEL',
-		'CAM_IMAGE_RESIZE', 'CAM_EMAIL_RESIZE', 'CAM_EMAIL_MULTIPICS']
+	var selects = ['MODEL', 'IMG_WIDTH', 'MAIL_IMG_WIDTH', 'MAIL_PICS']
 		.map(x => x + num);
 	for (let x of selects) {
 		if (js_globals[x] != undefined) {
@@ -73,12 +73,10 @@ function initLists(num) {
 }
 
 function cam_decorate(num) {
-	var fields =
-		['#CAM_NAME','#CAM_NOTE','#CAM_HOST_OR_IP','#CAM_PORT'];
-	var email_opt =
-		['#CAM_EMAIL_SUBJECT1','#CAM_EMAIL_DATE_FORMAT', '#CAM_EMAIL_SUBJECT2',
-			'#CAM_EMAIL_TIME_FORMAT','#CAM_EMAIL_SUBJECT3'];
-	var email = ['#CAM_RECIPIENTS','#CAM_EMAIL_FROM_NAME'];
+	var fields = ['#NAME', '#NOTE', '#ADDR', '#PORT'];
+	var email_opt = ['#MAIL_SUBJECTA', '#MAIL_DATE', '#MAIL_SUBJECTB',
+			'#MAIL_TIME', '#MAIL_SUBJECTC'];
+	var email = ['#RECIPIENTS','#MAIL_FROM'];
 	email = email.concat(email_opt);
 	fields = fields.concat(email);
 
@@ -94,10 +92,7 @@ function cam_decorate(num) {
 		$.ajax({ url: '', type: 'GET', data: { 'delete_cam': num } })
 		.done(function() {
 			$('#camdiv' + num).remove();
-			if ($('.camdiv').length == 0) {
-				$('#cam_headline').prop('display', 'none');
-				$('#no_cam_headline').prop('display', 'block');
-			} else {
+			if ($('.camdiv').length != 0) {
 				$('#CAM_LIST option[value="#camdiv' + num + '"]').remove();
 				$('#CAM_LIST option[value=""]').attr('selected', true).trigger('change');
 			}
@@ -142,50 +137,47 @@ function cam_decorate_all() {
 	});
 
 	var no_cams = js_globals.CAMS.length == 0;
-	$('#cam_headline').css('display', no_cams ? 'none' : 'block');
-	$('#no_cam_headline').css('display', no_cams ? 'block' : 'none');
 
-	$('.jump2CamSelect').on('click', function(ev) {
+	$('.jump2select').on('click', function(ev) {
 		$('#CAM_LIST').scrollToMe(); return false;
 	});
 
-	$('#delete_log_btn > span').hide();
-	$('#delete_log_btn > span:nth-child(1)').show();
+	var timeoutFn = function(ev) {
+		$('#del_log > span').hide();
+		$('#del_log > span:nth-child(1)').show();
+		$('#del_log').css('background-color', '');
+	};
+	timeoutFn();
 
-	$('delete_log_btn').on('click', function(ev) {
-		$('#delete_log_div').css('background-color','yellow');
-		$('#delete_log_btn > span:nth-child(1)').hide();
-		$('#delete_log_btn > span:nth-child(2)').show();
+	$('#del_log').on('click', function(ev) {
+		$('#del_log > span:nth-child(1)').hide();
+		$('#del_log > span:nth-child(2)').show();
+		$('#del_log').css('background-color',
+			$('#del_log > span:nth-child(2)').css('background-color'));
 		$.ajax({url: '', type: 'GET', data: { 'delete_log': 1 },
 			success: function (data) {
-				$('#delete_log_div').css('background-color', 'green');
-				$('#delete_log_btn > span:nth-child(2)').hide();
-				$('#delete_log_btn > span:nth-child(3)').show();
-				setTimeout( function() {
-					$('#delete_log_div').css('background-color','');
-					$('#delete_log_btn > span:nth-child(2)').hide();
-					$('#delete_log_btn > span:nth-child(1)').show();
-				}, 2000);
+				$('#del_log > span:nth-child(2)').hide();
+				$('#del_log > span:nth-child(3)').show();
+				$('#del_log').css('background-color',
+					$('#del_log > span:nth-child(3)').css('background-color'));
+				setTimeout(timeoutFn, 2000);
 			},
 			error: function (textStatus, errorThrown) {
-				$('#delete_log_div').css('background-color','red');
-				$('#delete_log_btn > span:nth-child(2)').hide();
-				$('#delete_log_btn > span:nth-child(4)').show();
-				setTimeout( function() {
-					$('#delete_log_div').css('background-color','');
-					$('#delete_log_btn > span:nth-child(2)').hide();
-					$('#delete_log_btn > span:nth-child(1)').show();
-				}, 2000);
+				$('#del_log > span:nth-child(2)').hide();
+				$('#del_log > span:nth-child(4)').show();
+				$('#del_log').css('background-color',
+					$('#del_log > span:nth-child(4)').css('background-color'));
+				setTimeout(timeoutFn, 2000);
 			}
 		});
-		return false;
+		return false;	/* do not reload the page */
 	});
 
 	for (let cam of js_globals.CAMS) {
 		cam_decorate(cam);
 	}
 
-	$('#main_form input, #main_form select, #main_form button').each(function() {
+	$('#main_form input, #main_form select, #main_form button').each(function(){
 		if (!$(this).attr('name'))
 			$(this).attr('name', $(this).attr('id'));
 	});

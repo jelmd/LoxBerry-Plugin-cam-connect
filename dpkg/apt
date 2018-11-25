@@ -1,1 +1,4 @@
-php-curl php-gd libjson-xs-perl ksh
+ksh
+php-curl
+php-gd
+libjson-xs-perl

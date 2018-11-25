@@ -1,8 +1,8 @@
-# cam-snap
+# snap-cam
 
 ## Versionierung (german)
 
-**cam-snap** benutzt __Semantische Versionierung__, d.h. jede Versionsangabe
+**snap-cam** benutzt __Semantische Versionierung__, d.h. jede Versionsangabe
 folgt dem Schema
 _X_._Y_._Z_[._R_._C_] (_major_._minor_._patchLevel_[._release_._counter_]).
 _X_, _Y_, _Z_, _R_, _C_ sind alle samt ganze Zahlen, die - abhängig von
@@ -73,7 +73,7 @@ D.h. dass auch nutzlose Suffixe wie '-rc\*' oder ähnliches verboten sind.
 
 ## Versioning (englisch)
 
-**cam-snap** uses __semantic versioning__, i.e. each release is numbered
+**snap-cam** uses __semantic versioning__, i.e. each release is numbered
 _X_._Y_._Z_[._R_._C_] (_major_._minor_._patchLevel_[._release_._counter_]).
 _X_, _Y_, _Z_, _R_, _C_ are all
 integers, which get - depending on the changes made - **increased by 1** or

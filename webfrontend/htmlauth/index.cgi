@@ -29,354 +29,289 @@ use Config::Simple '-strict';
 use JSON;
 use warnings;
 use strict;
-no  strict "refs";
+no  strict 'refs';
 #use diagnostics;
 
 # Variables
-my $maintemplatefilename 		= "cam_connect.html";
-my $errortemplatefilename 		= "error.html";
-my $successtemplatefilename 	= "success.html";
-my $helptemplatefilename		= "help.html";
-my $pluginconfigfile 			= "cam-connect.cfg";
-my $languagefile 				= "language.ini";
-my $logfile 					= "cam_connect.log";
+my $maintemplatefile = 'config.html';
+my $errortemplatefile = 'error.html';
+my $successtemplatefile = 'success.html';
+my $helptemplatefile = 'help.html';
+my $pluginconfigfile = $lbpplugindir . '.cfg';
+my $languagefile = 'language.ini';
+my $logfile = $lbpplugindir . '.log';
 my $template_title;
-my $no_error_template_message	= "<b>Cam-Connect:</b> The error template is not readable. We must abort here. Please try to reinstall the plugin.";
-my $version 					= LoxBerry::System::pluginversion();
-my $helpurl 					= "http://www.loxwiki.eu/display/LOXBERRY/Cam-Connect";
-my @pluginconfig_strings 		= ('EMAIL_FILENAME');
-my @pluginconfig_cameras 		= (
-	"CAM_HOST_OR_IP", "CAM_PORT", "CAM_MODEL", "CAM_USER", "CAM_PASS", "CAM_NOTE",
-	"CAM_RECIPIENTS", "CAM_NAME", "WATERMARK", "CAM_IMAGE_RESIZE",
-	"CAM_EMAIL_FROM_NAME", "CAM_EMAIL_SUBJECT1", "CAM_EMAIL_DATE_FORMAT",
-	"CAM_EMAIL_SUBJECT2", "CAM_EMAIL_TIME_FORMAT",
-	"CAM_EMAIL_SUBJECT3", "CAM_EMAIL_BODY", "CAM_EMAIL_SIGNATURE",
-	"CAM_EMAIL_RESIZE", "CAM_NO_EMAIL_CB",
-	"CAM_EMAIL_USED_CB", "CAM_EMAIL_MULTIPICS", "CAM_EMAIL_INLINE_CB");
-my $cam_model_list				= "";
+my $no_error_template_message = '<b>Snap-Cam:</b> The error template is not readable. We must abort here. Please try to reinstall the plugin.';
+my $version = LoxBerry::System::pluginversion();
+my $helpurl = 'http://www.loxwiki.eu/display/LOXBERRY/Cam-Connect';
+my @cfg_vars = ('NAME', 'NOTE', 'ADDR', 'PORT', 'MODEL',
+	'USERNAME', 'PW', 'IMG_WIDTH', 'WATERMARK', 'MAIL', 'RECIPIENTS',
+	'MAIL_FROM', 'MAIL_SUBJECTA', 'MAIL_DATE', 'MAIL_SUBJECTB', 'MAIL_TIME',
+	'MAIL_SUBJECTC', 'MAIL_BODY', 'MAIL_SIG', 'MAIL_IMG_WIDTH',
+	'MAIL_IMG_INLINE', 'MAIL_PICS');
+my $cam_model_list				= '';
 my @lines						= [];
-my $log 						= LoxBerry::Log->new (
-	name => 'CamConnect', filename => $lbplogdir ."/". $logfile, append => 1
+my $log 						= LoxBerry::Log->new(
+	name => 'SnapCam',
+	filename => $lbplogdir ."/". $logfile,
+	append => 1
 );
-my $plugin_cfg = $lbpconfigdir . "/" . $pluginconfigfile;
+my $plugin_cfg = $lbpconfigdir . '/' . $pluginconfigfile;
 LOGDEB "Loading '$plugin_cfg' ...\n";
-$plugin_cfg 					= new Config::Simple($plugin_cfg);
-my %Config 						= $plugin_cfg->vars() if ( $plugin_cfg );
-
-our $error_message				= "";
+$plugin_cfg = new Config::Simple($plugin_cfg);
+my %Config = $plugin_cfg->vars() if ($plugin_cfg);
+our $error_message = '';
 
 # Logging
 my $plugin = LoxBerry::System::plugindata();
 
-LOGSTART "New admin call."      if $plugin->{PLUGINDB_LOGLEVEL} eq 7;
-$LoxBerry::System::DEBUG 	= 1 if $plugin->{PLUGINDB_LOGLEVEL} eq 7;
-$LoxBerry::Web::DEBUG 		= 1 if $plugin->{PLUGINDB_LOGLEVEL} eq 7;
+if ($plugin->{PLUGINDB_LOGLEVEL} eq 7) {
+	LOGSTART 'New admin call.';
+	$LoxBerry::System::DEBUG = 1;
+	$LoxBerry::Web::DEBUG = 1;
+}
 $log->loglevel($plugin->{PLUGINDB_LOGLEVEL});
 
-LOGDEB "Init CGI and import names in namespace R::";
-my $cgi 	= CGI->new;
+LOGDEB 'Init CGI and import names in namespace R::';
+my $cgi = CGI->new;
 $cgi->import_names('R');
-if ($LoxBerry::Web::DEBUG) {
+if ($LoxBerry::Web::DEBUG || 1) {
 	use Data::Dumper;
-	my %hash = $cgi->Vars(",");
+	my %hash = $cgi->Vars(',');
 	LOGDEB Dumper(\%hash);
 }
-if ( $R::delete_log )
-{
-	LOGDEB "Oh, it's a log delete call. ".$R::delete_log;
-	LOGWARN "Delete Logfile: ".$logfile;
+
+if ($R::delete_log) {
+	LOGWARN 'Delete Logfile: ' . $logfile;
+	LOGDEB 'Debug = ' . $R::delete_log;
 	my $logfile = $log->close;
 	system("/bin/date > $logfile");
 	$log->open;
-	LOGSTART "Logfile restarted.";
 	print "Content-Type: text/plain\n\nOK";
+	LOGSTART 'Logfile restarted - exiting';
 	exit;
 }
-else
-{
-	LOGDEB "No log delete call. Go ahead";
-}
 
-LOGDEB "Get language";
-my $lang	= lblanguage();
-LOGDEB "Resulting language is: " . $lang;
+my $lang = lblanguage();
+LOGDEB 'Using language: ' . $lang;
 
 $main::htmlhead = '<link rel="stylesheet" href="index.css" />';
 
-LOGDEB "Check, if filename for the errortemplate is readable";
-stat($lbptemplatedir . "/" . $errortemplatefilename);
-if ( !-r _ )
-{
-	LOGDEB "Filename for the errortemplate is not readable, that's bad";
+
+stat($lbptemplatedir . '/' . $errortemplatefile);
+if (! -r _) {
 	$error_message = $no_error_template_message;
-	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
+	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
 	print $error_message;
 	LOGCRIT $error_message;
 	LoxBerry::Web::lbfooter();
-	LOGCRIT "Leaving Cam-Connect Plugin due to an unrecoverable error";
+	LOGCRIT 'Exiting due to an unrecoverable error';
 	exit;
 }
-
-LOGDEB "Filename for the errortemplate is ok, preparing template";
 my $errortemplate = HTML::Template->new(
-		filename => $lbptemplatedir . "/" . $errortemplatefilename,
-		global_vars => 1,
-		loop_context_vars => 1,
-		die_on_bad_params=> 0,
-		associate => $cgi,
-		%htmltemplate_options,
-		debug => 1,
-		);
-LOGDEB "Read error strings from " . $languagefile . " for language " . $lang;
+	filename => $lbptemplatedir . "/" . $errortemplatefile,
+	global_vars => 1,
+	loop_context_vars => 1,
+	die_on_bad_params=> 0,
+	associate => $cgi,
+	%htmltemplate_options,
+	#debug => 1,
+);
+LOGDEB 'Read error strings from ' . $languagefile . ' for language ' . $lang;
 my %ERR = LoxBerry::System::readlanguage($errortemplate, $languagefile);
 
-LOGDEB "Check, if filename for the successtemplate is readable";
-stat($lbptemplatedir . "/" . $successtemplatefilename);
-if ( !-r _ )
-{
-	LOGDEB "Filename for the successtemplate is not readable, that's bad";
-	$error_message = $ERR{'ERRORS.ERR_SUCCESS_TEMPLATE_NOT_READABLE'};
+
+stat($lbptemplatedir . '/' . $successtemplatefile);
+if (! -r _) {
+	$error_message = $ERR{'ERR.SUCCESS_TEMPLATE'};
 	&error;
 }
-LOGDEB "Filename for the successtemplate is ok, preparing template";
 my $successtemplate = HTML::Template->new(
-		filename => $lbptemplatedir . "/" . $successtemplatefilename,
-		global_vars => 1,
-		loop_context_vars => 1,
-		die_on_bad_params=> 0,
-		associate => $cgi,
-		%htmltemplate_options,
-		debug => 1,
-		);
-LOGDEB "Read success strings from " . $languagefile . " for language " . $lang;
+	filename => $lbptemplatedir . '/' . $successtemplatefile,
+	global_vars => 1,
+	loop_context_vars => 1,
+	die_on_bad_params=> 0,
+	associate => $cgi,
+	%htmltemplate_options,
+	#debug => 1,
+);
+LOGDEB 'Read success strings from ' . $languagefile . ' for language ' . $lang;
 my %SUC = LoxBerry::System::readlanguage($successtemplate, $languagefile);
 
-LOGDEB "Check, if filename for the maintemplate is readable, if not raise an error";
-$error_message = $ERR{'ERRORS.ERR_MAIN_TEMPLATE_NOT_READABLE'};
-stat($lbptemplatedir . "/" . $maintemplatefilename);
-&error if !-r _;
-LOGDEB "Filename for the maintemplate is ok, preparing template";
+
+stat($lbptemplatedir . '/' . $maintemplatefile);
+if (! -r _) {
+	$error_message = $ERR{'ERR.MAIN_TEMPLATE'};
+	&error;
+}
 my $maintemplate = HTML::Template->new(
-		filename => $lbptemplatedir . "/" . $maintemplatefilename,
-		global_vars => 1,
-		loop_context_vars => 1,
-		die_on_bad_params=> 0,
-		%htmltemplate_options,
-	#	debug => 1
-		);
-LOGDEB "Read main strings from " . $languagefile . " for language " . $lang;
+	filename => $lbptemplatedir . "/" . $maintemplatefile,
+	global_vars => 1,
+	loop_context_vars => 1,
+	die_on_bad_params=> 0,
+	%htmltemplate_options,
+	#debug => 1
+);
+LOGDEB 'Read main strings from ' . $languagefile . ' for language ' . $lang;
 my %L = LoxBerry::System::readlanguage($maintemplate, $languagefile);
 
-LOGDEB "Check if plugin config file is readable";
-if (!-r $lbpconfigdir . "/" . $pluginconfigfile)
-{
-	LOGWARN "Plugin config file not readable.";
-	LOGDEB "Check if config directory exists. If not, try to create it. In case of problems raise an error";
-	$error_message = $ERR{'ERRORS.ERR_CREATE_CONFIG_DIRECTORY'};
+
+my $cfg_file = $lbpconfigdir . '/' . $pluginconfigfile;
+if (! -r $cfg_file) {
+	LOGWARN 'Plugin config file not readable: ' . $cfg_file;
+	$error_message = $ERR{'ERR.CREATE_DIR'};
 	mkdir $lbpconfigdir unless -d $lbpconfigdir or &error;
-	LOGDEB "Try to create a default config";
-	$error_message = $ERR{'ERRORS.ERR_CREATE CONFIG_FILE'};
-	open my $configfileHandle, ">", $lbpconfigdir . "/" . $pluginconfigfile or &error;
-		print $configfileHandle 'EMAIL_FILENAME="Snapshot"'."\n";
-	close $configfileHandle;
-	LOGWARN "Default config created. Display error anyway to force a page reload";
-	$error_message = $ERR{'ERRORS.ERR_NO_CONFIG_FILE'};
+	$error_message = $ERR{'ERR.CREATE_FILE'};
+	open my $cfg, '>', $cfg_file or &error;
+	close $cfg;
+	LOGWARN 'Default config created. Reporting an error to force a page reload';
+	$error_message = $ERR{'ERR.NO_CONFIG'};
 	&error;
 }
 
-LOGDEB "Parsing valid config variables into the maintemplate";
-foreach my $config_value (@pluginconfig_strings)
-{
-	${$config_value} = $Config{'default.' . $config_value};
-	if (defined ${$config_value} && ${$config_value} ne '')
-	{
-		LOGDEB "Set config variable: " . $config_value . " to " . ${$config_value};
-  		$maintemplate->param($config_value	, ${$config_value} );
-	}
-	else
-	{
-		LOGWARN "Config variable: " . $config_value . " missing or empty.";
-  		$maintemplate->param($config_value	, "");
-	}
-}
-$maintemplate->param( "LBPPLUGINDIR" , $lbpplugindir);
+$maintemplate->param('LBPPLUGINDIR', $lbpplugindir);
 
-$R::saveformdata if 0; # Prevent errors
-LOGDEB "Is it a save call?";
-if ( $R::saveformdata )
-{
-	LOGDEB "Yes, is it a save call";
-	foreach my $parameter_to_write (@pluginconfig_strings)
-	{
-	    while (my ($config_variable, $value) = each %R::)
-	    {
-			if ( $config_variable eq $parameter_to_write )
-			{
-				$plugin_cfg->param($config_variable, ${$value});
-				LOGDEB "Setting configuration variable [$config_variable] to value (${$value}) ";
-			}
-		}
-	}
+if ($R::saveformdata) {
+	LOGDEB 'Processing save call' . $R::saveformdata;
 
-	my @matches = grep { /CAM_HOST_OR_IP[0-9]*/ } %R::;
-	s/CAM_HOST_OR_IP// for @matches ;
+	my @matches = grep { /ADDR[0-9]*/ } %R::;
+	s/ADDR// for @matches ;
 
-	foreach my $cameras (@matches)
-	{
-	LOGDEB "Prepare camera $cameras config:";
-		foreach my $cam_parameter_to_write (@pluginconfig_cameras)
-		{
-
-		    while (my ($cam_config_variable, $cam_value) = each %R::)
-		    {
-				if ( $cam_config_variable eq $cam_parameter_to_write . $cameras )
-				{
-					if (defined ${$cam_value} && ${$cam_value} ne '')
-					{
-						LOGDEB "Setting configuration variable [".$cam_config_variable . "] to value (" . ${$cam_value} .")";
-						$plugin_cfg->param($cam_config_variable , ${$cam_value});
-					}
-					else
-					{
-						LOGDEB "Config variable: " . $cam_config_variable . " missing or empty. Ignoring it.";
+	foreach my $camID (@matches) {
+		LOGDEB "Saving camera $camID";
+		foreach my $vname (@cfg_vars) {
+			while (my ($key, $value) = each %R::) {
+				if ($key eq $vname . $camID){
+					if (defined ${$value} && ${$value} ne '') {
+						LOGDEB $key . '=' . "'${$value}'";
+						$plugin_cfg->param($key, ${$value});
+					} else {
+						LOGDEB $key . ' is  missing or empty.';
 					}
 				}
 			}
 		}
 	}
 	$plugin_cfg->param('VERSION', $version);
-	LOGDEB "Write config to file";
-	$error_message = $ERR{'ERRORS.ERR_SAVE_CONFIG_FILE'};
+	$error_message = $ERR{'ERR.SAVE_CONFIG'};
 	$plugin_cfg->save() or &error;
 
-	LOGDEB "Set page title, load header, parse variables, set footer, end";
+	LOGDEB 'Set page title, load header, parse variables, set footer, end';
 	$template_title = $SUC{'SAVE.MY_NAME'};
-	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
-	$successtemplate->param('SAVE_ALL_OK'		, $SUC{'SAVE.SAVE_ALL_OK'});
-	$successtemplate->param('SAVE_MESSAGE'		, $SUC{'SAVE.SAVE_MESSAGE'});
-	$successtemplate->param('SAVE_BUTTON_OK' 	, $SUC{'SAVE.SAVE_BUTTON_OK'});
-	$successtemplate->param('SAVE_NEXTURL'		, $ENV{REQUEST_URI});
+	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
+	$successtemplate->param('SAVE_ALL_OK', $SUC{'SAVE.SAVE_ALL_OK'});
+	$successtemplate->param('SAVE_MESSAGE', $SUC{'SAVE.SAVE_MESSAGE'});
+	$successtemplate->param('SAVE_BUTTON_OK', $SUC{'SAVE.SAVE_BUTTON_OK'});
+	$successtemplate->param('SAVE_NEXTURL', $ENV{REQUEST_URI});
 	print $successtemplate->output();
 	LoxBerry::Web::lbfooter();
-	LOGDEB "Leaving Cam-Connect Plugin after saving the configuration.";
+	LOGDEB 'Config saved - exiting.';
 	exit;
 }
-else
-{
-	LOGDEB "No, not a save call";
-}
-LOGDEB "Call default page";
+
+LOGDEB 'Preparing default page';
 &defaultpage;
 
 #####################################################
 # Subs
 #####################################################
-
-sub defaultpage
-{
-	LOGDEB "Sub defaultpage";
-	LOGDEB "Prepare Cam list";
-	$cam_model_list="";
-	open(F,"$lbpdatadir/camera_models.dat") || die "Missing camera list.";
-	 flock(F,2);
-	 @lines = <F>;
-	 flock(F,8);
+sub defaultpage {
+	LOGDEB 'Prepare Cam list';
+	$cam_model_list='';
+	open(F, "$lbpdatadir/camera_models.dat") || die 'Missing camera list.';
+	flock(F,2);
+	@lines = <F>;
+	flock(F,8);
 	close(F);
-	foreach (@lines)
-	{
-	  s/[\n\r]//g;
-	  our @cams = split /\|/, $_;
-	    $cam_model_list .= "<option value=\"$cams[0]\">$cams[1] $cams[2]</option>\n";
-		LOGDEB "Adding cam model: #" . $cams[0] . " " . $cams[1] . " (" . $cams[2] . ")";
+	foreach (@lines) {
+		s/[\n\r]//g;
+		our @cams = split /\|/, $_;
+		$cam_model_list .=
+			"<option value='$cams[0]'>$cams[1] $cams[2]</option>\n";
+		LOGDEB 'Adding cam model: #' . $cams[0] . ' ' . $cams[1]
+			. ' (' . $cams[2] . ')';
 	}
-	LOGDEB "Set page title, load header, parse variables, set footer, end";
 	$template_title = $L{'CC.MY_NAME'};
-
-	$maintemplate->param( "LOGO_ICON"		, get_plugin_icon(64) );
-	$maintemplate->param( "HTTP_HOST"		, $ENV{HTTP_HOST});
-	$maintemplate->param( "HTTP_PATH"		, '/plugins/' . $lbpplugindir);
-	$maintemplate->param( "cam_model_list"	, $cam_model_list);
-	$maintemplate->param( "VERSION"			, $version);
-	$maintemplate->param( "LOGLEVEL" 		, $L{"CC.LOGLEVEL".$plugin->{PLUGINDB_LOGLEVEL}});
-	$lbplogdir =~ s/$lbhomedir\/log\///; # Workaround due to missing variable for Logview
-	$maintemplate->param( "LOGFILE" , $lbplogdir . "/" . $logfile );
-	LOGDEB "Check for pending notifications for: " . $lbpplugindir . " " . $L{'CC.MY_NAME'};
-	my $notifications = LoxBerry::Log::get_notifications_html($lbpplugindir, $L{'CC.MY_NAME'});
-	LOGDEB "Notifications are:\n".encode_entities($notifications) if $notifications;
-	LOGDEB "No notifications pending." if !$notifications;
-	$maintemplate->param( "NOTIFICATIONS" , $notifications);
+	$maintemplate->param('LOGO_ICON', get_plugin_icon(64));
+	$maintemplate->param('HTTP_HOST', $ENV{HTTP_HOST});
+	$maintemplate->param('HTTP_PATH', '/plugins/' . $lbpplugindir);
+	$maintemplate->param('cam_model_list', $cam_model_list);
+	$maintemplate->param('VERSION', $version);
+	$maintemplate->param('LOGLEVEL',
+		$L{'CC.LOGLEVEL' . $plugin->{PLUGINDB_LOGLEVEL}});
+	# Workaround due to missing var for Logview
+	$lbplogdir =~ s/$lbhomedir\/log\///;
+	$maintemplate->param('LOGFILE', $lbplogdir . '/' . $logfile);
+	LOGDEB 'Check for pending notifications: '
+		. $lbpplugindir . ' ' . $L{'CC.MY_NAME'};
+	my $notifications =
+		LoxBerry::Log::get_notifications_html($lbpplugindir, $L{'CC.MY_NAME'});
+	LOGDEB 'No notifications pending.' if !$notifications;
+	$maintemplate->param('NOTIFICATIONS', $notifications);
 
 	my @camdata = ();
 	my @known_cams = ();
 	foreach (keys %Config) {
-		#LOGDEB ($Config{$_}) ? "$_ : $Config{$_}\n" : "$_ :\n";
-		next unless /CAM_HOST_OR_IP[0-9]*/;
-		s/default.CAM_HOST_OR_IP//;
+		next unless /ADDR[0-9]*/;
+		s/default.ADDR//;
 		push @known_cams, $_;
 	}
 	@known_cams = sort @known_cams;
-	LOGDEB "Found following cameras in config: ".join(",",@known_cams);
-	my ($first_cam_id, $last_cam_id) = minmax @known_cams;
-	$maintemplate->param(@known_cams.length == 0 ? "NOCAMS" : "SOMECAMS", 1);
+	LOGDEB 'Found following cameras in config: ' . join(',', @known_cams);
+	my ($fid, $lid) = minmax @known_cams;
 
-	if ( $R::create_cam )
-	{
-		LOGDEB "Oh, it's a create_cam call. " . $R::create_cam;
-		$last_cam_id++;
-		LOGDEB "Create new camera: ".$last_cam_id;
-		$error_message = $ERR{'ERRORS.ERR_CREATE_CONFIG_FILE'};
-		open my $configfileHandle, ">>", $lbpconfigdir . "/" . $pluginconfigfile or &error;
-			print $configfileHandle 'CAM_IMAGE_RESIZE'.$last_cam_id.'=9999'."\n";
-			print $configfileHandle 'CAM_EMAIL_RESIZE'.$last_cam_id.'=9999'."\n";
-			print $configfileHandle 'CAM_HOST_OR_IP'.$last_cam_id.'="'.$L{'CC.CAM_HOST_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_PORT'.$last_cam_id.'="'.$L{'CC.CAM_PORT_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_USER'.$last_cam_id.'="'.$L{'CC.CAM_USER_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_PASS'.$last_cam_id.'=""'."\n";
-			print $configfileHandle 'CAM_NAME'.$last_cam_id.'="'.$L{'CC.CAM_NAME_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_EMAIL_FROM_NAME'.$last_cam_id.'="'.$L{'CC.CAM_EMAIL_FROM_NAME_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_NO_EMAIL_CB'.$last_cam_id."=0\n";
-			print $configfileHandle 'CAM_EMAIL_INLINE_CB'.$last_cam_id."=0\n";
-			print $configfileHandle 'CAM_EMAIL_MULTIPICS'.$last_cam_id."=10\n";
-			print $configfileHandle 'WATERMARK'.$last_cam_id."=0\n";
-			print $configfileHandle 'CAM_EMAIL_USED_CB'.$last_cam_id."=0\n";
-			print $configfileHandle 'CAM_NOTE'.$last_cam_id.'="'.$L{'CC.CAM_NOTE_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_RECIPIENTS'.$last_cam_id.'="'.$L{'CC.EMAIL_RECIPIENTS_SUGGESTION'}.'"'."\n";
-			print $configfileHandle 'CAM_MODEL'.$last_cam_id.'=1'."\n";
-		close $configfileHandle;
-		LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
+	if ($R::create_cam) {
+		$lid++;
+		LOGDEB 'Creating new camera ' . $lid . ' ' . $R::create_cam;
+		$error_message = $ERR{'ERR.CREATE_FILE'};
+		open my $cfg, '>>', $lbpconfigdir . '/' . $pluginconfigfile or &error;
+		print $cfg 'IMG_WIDTH' . $lid . '=9999' . "\n";
+		print $cfg 'MAIL_IMG_WIDTH' . $lid . '=9999' . "\n";
+		print $cfg 'ADDR' . $lid . "=''\n";
+		print $cfg 'PORT' . $lid . '="' . $L{'CC.PORT_EX'} . "\"\n";
+		print $cfg 'MAIL_FROM' . $lid . '="' . $L{'CC.MAIL_FROM_EX'} . "\"\n";
+		print $cfg 'USERNAME' . $lid . "=''\n";
+		print $cfg 'PW' . $lid . "=''\n";
+		print $cfg 'NAME' . $lid . "=''\n";
+		print $cfg 'MAIL_IMG_INLINE' . $lid . "=0\n";
+		print $cfg 'MAIL_PICS' . $lid . "=10\n";
+		print $cfg 'WATERMARK' . $lid . "=0\n";
+		print $cfg 'MAIL' . $lid . "=0\n";
+		print $cfg 'NOTE' . $lid . "=''\n";
+		print $cfg 'RECIPIENTS' . $lid . "=''\n";
+		print $cfg 'MODEL' . $lid . "=1\n";
+		close $cfg;
+		LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
 		print "OK\n";
+		LOGDEB 'Create cam page done - exiting.';
 		exit;
-	} else {
-		LOGDEB "No create_cam call. Go ahead";
 	}
-	if ( $R::delete_cam ) {
-		LOGDEB "Oh, it's a delete_cam call. ";
-		LOGDEB "Delete camera: ".$R::delete_cam;
-		$error_message = $ERR{'ERRORS.ERR_CREATE_CONFIG_FILE'};
+
+	if ($R::delete_cam) {
+		LOGDEB 'Deleting camera ' . $R::delete_cam;
+		$error_message = $ERR{'ERR.CREATE_FILE'};
 		use Tie::File;
 
-		LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
+		LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
 		print "Content-Type: text/plain\n\n";
-		my $cam_param_to_delete = "";
-		foreach my $param_to_delete (@pluginconfig_cameras)
-	    {
-			my $cam_param_to_delete = $param_to_delete.$R::delete_cam."=";
-			LOGDEB "Delete cam parameter: ".$cam_param_to_delete;
-			tie my @file_lines, 'Tie::File', $lbpconfigdir . "/" . $pluginconfigfile or die;
-			@file_lines = grep !/^$cam_param_to_delete/, @file_lines;
+		my $rm_var = '';
+		foreach my $vname (@cfg_vars) {
+			my $rm_var = $vname . $R::delete_cam . '=';
+			LOGDEB 'Deleting var ' . $rm_var;
+			tie my @file_lines,
+				'Tie::File', $lbpconfigdir . '/' . $pluginconfigfile or die;
+			@file_lines = grep !/^$rm_var/, @file_lines;
 			untie @file_lines or die "$!";
 		}
 		print "OK\n";
+		LOGDEB 'Delete cam page done - exiting.';
 		exit;
-	} else {
-		LOGDEB "No delete_cam call. Go ahead";
 	}
 
-	my $cam_list = '<option value="">'. $L{'CC.CAM_SELECT_OPTION'} .'</option>';
+	my $cam_list = '<option value="">'.$L{'CC.CAM_SELECT_OPTION'}.'</option>';
 
 	my %js_globals = (
 		CC__MY_NAME => $template_title,
-		#HTTP_HOST => $maintemplate->param('HTTP_HOST'),
 		HTTP_PATH => $maintemplate->param('HTTP_PATH'),
 		LBPPLUGINDIR => $lbpplugindir,
 		CAMS => \@known_cams,
@@ -385,63 +320,63 @@ sub defaultpage
 	foreach my $camno (@known_cams) {
 		my %cam;
 
-		my @fill_suggestions = ("CAM_EMAIL_SUBJECT1", "CAM_EMAIL_SUBJECT2",
-			"CAM_EMAIL_SUBJECT3", "CAM_EMAIL_DATE_FORMAT", "CAM_EMAIL_TIME_FORMAT",
-			"CAM_EMAIL_BODY", "CAM_EMAIL_SIGNATURE");
+		my @fill_suggestions = ('MAIL_SUBJECTA', 'MAIL_DATE', 'MAIL_SUBJECTB',
+			'MAIL_TIME', 'MAIL_SUBJECTC', 'MAIL_BODY', 'MAIL_SIG');
 		foreach my $suggestion_field (@fill_suggestions) {
-			if (!defined $plugin_cfg->param( $suggestion_field . $camno ) )
-			{
-				LOGDEB "Setting suggested CAM configuration variable [" . $suggestion_field . "] to value (" . $L{ "CC." . $suggestion_field . "_SUGGESTION" } . ")";
-				$cam{$suggestion_field}	= uri_unescape($L{ "CC." . $suggestion_field . "_SUGGESTION" });
-			}
-			else
-			{
-				LOGDEB "Setting CAM configuration variable [" . $suggestion_field . $camno . "] to value (" . uri_unescape($plugin_cfg->param($suggestion_field . $camno)) . ")";
-				$cam{$suggestion_field}	= uri_unescape($plugin_cfg->param($suggestion_field . $camno));
+			if (!defined $plugin_cfg->param( $suggestion_field . $camno)) {
+				LOGDEB "Suggested CAM config var '" . $suggestion_field . "'='"
+					. $L{'CC.' . $suggestion_field . '_EX'} . "'";
+				$cam{$suggestion_field}	=
+					uri_unescape($L{'CC.' . $suggestion_field . '_EX'});
+			} else {
+				LOGDEB "CAM config var '" . $suggestion_field . $camno . "'='"
+					. $plugin_cfg->param($suggestion_field . $camno) . "'";
+				$cam{$suggestion_field}	=
+					uri_unescape($plugin_cfg->param($suggestion_field .$camno));
 			}
 		}
 		$cam{CAMNO} = $camno;
-		$cam{CAM_HOST_OR_IP} 		= $plugin_cfg->param("CAM_HOST_OR_IP".$camno);
-		$cam{CAM_PORT} 				= $plugin_cfg->param("CAM_PORT".$camno);
-		$cam{CAM_MODEL} 			= $plugin_cfg->param("CAM_MODEL".$camno);
-		$cam{CAM_USER} 				= uri_unescape($plugin_cfg->param("CAM_USER".$camno));
-		$cam{CAM_PASS} 				= uri_unescape($plugin_cfg->param("CAM_PASS".$camno));
-		$cam{CAM_NOTE} 				= uri_unescape($plugin_cfg->param("CAM_NOTE".$camno));
-		$cam{CAM_RECIPIENTS} 		= uri_unescape($plugin_cfg->param("CAM_RECIPIENTS".$camno));
-		$cam{CAM_NAME} 				= uri_unescape($plugin_cfg->param("CAM_NAME".$camno));
-		$cam{CAM_EMAIL_FROM_NAME}	= uri_unescape($plugin_cfg->param("CAM_EMAIL_FROM_NAME".$camno));
-		$cam{CAM_IMAGE_RESIZE} 		= $plugin_cfg->param("CAM_IMAGE_RESIZE".$camno);
-		$cam{CAM_EMAIL_RESIZE} 		= $plugin_cfg->param("CAM_EMAIL_RESIZE".$camno);
-		$cam{CAM_EMAIL_MULTIPICS} 	= $plugin_cfg->param("CAM_EMAIL_MULTIPICS".$camno);
-		foreach my $cam_parameter_to_process ('WATERMARK',
-			'CAM_NO_EMAIL_CB','CAM_EMAIL_INLINE_CB','CAM_EMAIL_USED_CB')
+		$cam{ADDR} = $plugin_cfg->param('ADDR'.$camno);
+		$cam{PORT} = $plugin_cfg->param('PORT'.$camno);
+		$cam{MODEL} = $plugin_cfg->param('MODEL'.$camno);
+		$cam{USERNAME} = uri_unescape($plugin_cfg->param('USERNAME'.$camno));
+		$cam{PW} = uri_unescape($plugin_cfg->param('PW'.$camno));
+		$cam{NOTE} = uri_unescape($plugin_cfg->param('NOTE'.$camno));
+		$cam{RECIPIENTS} =uri_unescape($plugin_cfg->param('RECIPIENTS'.$camno));
+		$cam{NAME} = uri_unescape($plugin_cfg->param('NAME'.$camno));
+		$cam{MAIL_FROM} = uri_unescape($plugin_cfg->param('MAIL_FROM'.$camno));
+		$cam{IMG_WIDTH} = $plugin_cfg->param('IMG_WIDTH'.$camno);
+		$cam{MAIL_IMG_WIDTH} = $plugin_cfg->param('MAIL_IMG_WIDTH'.$camno);
+		$cam{MAIL_PICS} = $plugin_cfg->param('MAIL_PICS'.$camno);
+		foreach my $cam_parameter_to_process ('WATERMARK', 'MAIL',
+			'MAIL_IMG_INLINE')
 		{
+			my $val, my $checked;
 			my $param = $cam_parameter_to_process . $camno;
-			if ( $plugin_cfg->param($param) && int($plugin_cfg->param($param)) eq 1 )
+			if ($plugin_cfg->param($param)
+				&& int($plugin_cfg->param($param)) eq 1)
 			{
-				$cam{$cam_parameter_to_process} = 1;
-			    $cam{$cam_parameter_to_process."_VAL"} = 'checked';
+				$val = 1;
+			    $checked = 'checked';
+			} else {
+				$val = 0;
+			    $checked = '';
 			}
-			else
-			{
-				$cam{$cam_parameter_to_process} = 0;
-			    $cam{$cam_parameter_to_process. "_VAL"}  = '';
-			}
-			LOGDEB "Set special parameter " . $param;
+			$cam{$cam_parameter_to_process} = $val;
+		    $cam{$cam_parameter_to_process . "_VAL"} = $checked;
+			LOGDEB "CAM special config var '" . $param . "'='" . $val . "'";
 		}
 		$cam_list .= '<option value="#camdiv' . $camno . '">#'
-			. $camno . ' - ' . $cam{CAM_NAME} . '</option>';
+			. $camno . ' - ' . $cam{NAME} . '</option>';
 		# select boxes
-		foreach my $id ('CAM_MODEL', 'CAM_IMAGE_RESIZE', 'CAM_EMAIL_RESIZE',
-			'CAM_EMAIL_MULTIPICS')
-		{
+		foreach my $id ('MODEL', 'IMG_WIDTH', 'MAIL_IMG_WIDTH', 'MAIL_PICS') {
 			$js_globals{$id . $camno} = $plugin_cfg->param($id . $camno);
 		}
 		push(@camdata, \%cam);
 	}
-	$maintemplate->param("CAMDATA" => \@camdata);
-	$maintemplate->param("KNOWN_CAMS" => join(",", @known_cams));
-	$maintemplate->param("CAM_LIST" => $cam_list);
+	$maintemplate->param('CAMDATA' => \@camdata);
+	$maintemplate->param('KNOWN_CAMS' => join(',', @known_cams));
+	$maintemplate->param('CAM_LIST' => $cam_list);
 
 	# all index.js required mappings
 	my $txt = JSON->new->utf8->space_after->pretty->encode(\%js_globals);
@@ -450,25 +385,22 @@ sub defaultpage
 <script>var js_globals = ' . $txt  . ';</script>
 ';
 
-	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
-    print $maintemplate->output();
+	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
+	print $maintemplate->output();
 	LoxBerry::Web::lbfooter();
-	LOGDEB "Leaving Cam-Connect Plugin normally";
+	LOGDEB 'Default page done - exiting.';
 	exit;
 }
 
-sub error
-{
-	LOGDEB "Sub error";
+sub error {
 	LOGERR $error_message;
-	LOGDEB "Set page title, load header, parse variables, set footer, end with error";
-	$template_title = $ERR{'ERRORS.MY_NAME'} . " - " . $ERR{'ERRORS.ERR_TITLE'};
-	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefilename);
-	$errortemplate->param('ERR_MESSAGE'		, $error_message);
-	$errortemplate->param('ERR_TITLE'		, $ERR{'ERRORS.ERR_TITLE'});
-	$errortemplate->param('ERR_BUTTON_BACK' , $ERR{'ERRORS.ERR_BUTTON_BACK'});
+	$template_title = $ERR{'ERR.MY_NAME'} . ' - ' . $ERR{'ERR.TITLE'};
+	LoxBerry::Web::lbheader($template_title, $helpurl, $helptemplatefile);
+	$errortemplate->param('ERR_MESSAGE' , $error_message);
+	$errortemplate->param('ERR_TITLE' , $ERR{'ERR.TITLE'});
+	$errortemplate->param('ERR_BACK' , $ERR{'ERR.BACK'});
 	print $errortemplate->output();
 	LoxBerry::Web::lbfooter();
-	LOGDEB "Leaving Cam-Connect Plugin with an error";
+	LOGDEB 'Error page done - exiting.';
 	exit;
 }

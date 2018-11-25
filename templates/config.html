@@ -1,0 +1,302 @@
+<main>
+
+<section id="notifblock">
+	<h5>placeholder for notifications</h5>
+	<!-- NOTIFICATIONS -->
+	<TMPL_VAR NOTIFICATIONS>
+	<!-- NOTIFICATIONS -->
+</section>
+
+<form method="post" data-ajax="false" id="main_form">
+	<input type="hidden" id="saveformdata">
+
+	<div>
+		<select id="CAM_LIST"><TMPL_VAR CAM_LIST></select>
+		<button id="create_cam" data-role="button" data-icon="plus"
+			><TMPL_VAR CC.CREATE_CAM></button>
+	</div>
+
+	<h1 id="cam_headline"><TMPL_VAR CC.CAM_CONFIGS></h1>
+
+<TMPL_LOOP NAME="CAMDATA">
+	<!-- Loop for camera <TMPL_VAR CAMNO> -->
+	<fieldset id="camdiv<TMPL_VAR CAMNO>" class="camdiv cfgpanel">
+		<legend class="camtitle"><TMPL_VAR CC.CAM> #<TMPL_VAR CAMNO></legend>
+<table>
+	<tbody>
+		<tr><td>
+			<label id="L_NAME<TMPL_VAR CAMNO>"><TMPL_VAR CC.CAM_NAME></label>
+		</td><td>
+			<input id="NAME<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.NAME_HINT>"
+				data-validation-rule="special:alphanumeric-accented-ws"
+				placeholder="<TMPL_VAR CC.NAME_EX>"
+				value="<TMPL_VAR NAME>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_NOTE<TMPL_VAR CAMNO>"><TMPL_VAR CC.NOTE></label>
+		</td><td>
+			<input id="NOTE<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.NOTE_HINT>"
+				data-validation-rule="^([A-Za-z0-9_-\s\(\)\.\,\:\;\/]){0,32}$"
+				placeholder="<TMPL_VAR CC.NOTE_EX>"
+				value="<TMPL_VAR NOTE>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_MODEL<TMPL_VAR CAMNO>"><TMPL_VAR CC.MODEL></label>
+		</td><td>
+			<select id="MODEL<TMPL_VAR CAMNO>" required>
+				<option value=''><TMPL_VAR CC.MODEL_SELECT></option>
+				<TMPL_VAR cam_model_list>
+			</select>
+		</td></tr>
+
+		<tr><td>
+			<label id="L_ADDR<TMPL_VAR CAMNO>"><TMPL_VAR CC.ADDR></label>
+		</td><td>
+			<input id="ADDR<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.ADDR_HINT>"
+				data-validation-rule="special:hostname_or_ipaddr"
+				placeholder="<TMPL_VAR CC.ADDR_EX>"
+				value="<TMPL_VAR ADDR>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_PORT<TMPL_VAR CAMNO>"><TMPL_VAR CC.PORT></label>
+		</td><td>
+			<input id="PORT<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.PORT_HINT>"
+				data-validation-rule="special:ipport"
+				placeholder="<TMPL_VAR CC.PORT_EX>"
+				value="<TMPL_VAR PORT>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_USERNAME<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.USERNAME></label>
+		</td><td>
+			<input id="USERNAME<TMPL_VAR CAMNO>" type="text"
+				placeholder="<TMPL_VAR CC.USERNAME_EX>"
+				value="<TMPL_VAR USERNAME>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_PW<TMPL_VAR CAMNO>"><TMPL_VAR CC.PW></label>
+		</td><td>
+			<input id="PW<TMPL_VAR CAMNO>" type="text" value="<TMPL_VAR PW>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_IMG_WIDTH<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.IMG_WIDTH></label>
+		</td><td>
+			<select id="IMG_WIDTH<TMPL_VAR CAMNO>">
+				<option value="9999"><TMPL_VAR CC.UNCHANGED></option>
+				<option value="240">240px</option>
+				<option value="320">320px</option>
+				<option value="640">640px</option>
+				<option value="720">720px</option>
+				<option value="1024">1024px</option>
+				<option value="1280">1280px</option>
+				<option value="1600">1600px</option>
+				<option value="1920">1920px</option>
+				<option value="0"><TMPL_VAR CC.NO_IMG></option>
+			</select>
+		</td></tr>
+
+		<tr><td>
+			<label id="L_WATERMARK<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.WATERMARK></label>
+		</td><td>
+			<input id="CB_WATERMARK<TMPL_VAR CAMNO>"
+				type="checkbox" <TMPL_VAR WATERMARK_VAL>>
+			<input id="WATERMARK<TMPL_VAR CAMNO>" type="hidden"
+				value="<TMPL_VAR WATERMARK>">
+		</td></tr>
+
+		<tr><td>
+			<label id="L_MAIL<TMPL_VAR CAMNO>"><TMPL_VAR CC.MAIL></label>
+		</td><td>
+			<input id="CB_MAIL<TMPL_VAR CAMNO>"
+				type="checkbox" <TMPL_VAR MAIL_VAL>>
+			<input id="MAIL<TMPL_VAR CAMNO>" type="hidden"
+				value="<TMPL_VAR MAIL>">
+		</td></tr>
+	</tbody>
+</table>
+
+		<fieldset class="cam_email<TMPL_VAR CAMNO> subcfg cfgpanel">
+			<legend><TMPL_VAR CC.MAIL_CFG></legend>
+<table>
+	<tbody>
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label id="L_RECIPIENTS<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.RECIPIENTS></label>
+		</td><td>
+			<input id="RECIPIENTS<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.RECIPIENTS_HINT>"
+				data-validation-rule="special:emails"
+				placeholder="<TMPL_VAR CC.RECIPIENTS_EX>"
+				value="<TMPL_VAR RECIPIENTS>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label><TMPL_VAR CC.MAIL_FROM></label>
+		</td><td>
+			<input id="MAIL_FROM<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_FROM_HINT>"
+				data-validation-rule="special:alphanumeric-accented-ws"
+				placeholder="<TMPL_VAR CC.MAIL_FROM_EX>"
+				value="<TMPL_VAR MAIL_FROM>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label><TMPL_VAR CC.MAIL_SUBJECT></label>
+		</td><td id="mail_subject<TMPL_VAR CAMNO>" class="mail_subject">
+			<input id="MAIL_SUBJECTA<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_SUBJECTA_HINT>"
+				data-validation-rule="^([-a-zA-Z0-9;,._?![\]()\u00C0-\u017F]|\s)*$"
+				placeholder="<TMPL_VAR CC.MAIL_SUBJECTA_EX>"
+				value="<TMPL_VAR MAIL_SUBJECTA>">
+			<input id="MAIL_DATE<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_DATE_HINT>"
+				data-validation-rule="^([-\slNSwFnjymdYMD./]){1,16}$"
+				placeholder="<TMPL_VAR CC.MAIL_DATE_EX>"
+				value="<TMPL_VAR MAIL_DATE>">
+			<input id="MAIL_SUBJECTB<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_SUBJECTB_HINT>"
+				data-validation-rule="^([-a-zA-Z0-9;,._?![\]()\u00C0-\u017F]|\s)*$"
+				placeholder="<TMPL_VAR CC.MAIL_SUBJECTB_EX>"
+				value="<TMPL_VAR MAIL_SUBJECTB>">
+			<input id="MAIL_TIME<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_TIME_HINT>"
+				data-validation-rule="^([-\saABgGhHisT:./]){1,16}$"
+				placeholder="<TMPL_VAR CC.MAIL_TIME_EX>"
+				value="<TMPL_VAR MAIL_TIME>">
+			<input id="MAIL_SUBJECTC<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_SUBJECTC_HINT>"
+				data-validation-rule="^([-a-zA-Z0-9;,._?![\]()\u00C0-\u017F]|\s)*$"
+				placeholder="<TMPL_VAR CC.MAIL_SUBJECTC_EX>"
+				value="<TMPL_VAR MAIL_SUBJECTC>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label><TMPL_VAR CC.MAIL_BODY></label>
+		</td><td>
+			<input id="MAIL_BODY<TMPL_VAR CAMNO>" type="text"
+				data-validation-rule="^.{1,255}$"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_BODY_HINT>"
+				placeholder="<TMPL_VAR CC.MAIL_BODY_EX>"
+				value="<TMPL_VAR MAIL_BODY>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label><TMPL_VAR CC.MAIL_SIG></label>
+		</td><td>
+			<input id="MAIL_SIG<TMPL_VAR CAMNO>" type="text"
+				data-validation-error-msg="<TMPL_VAR CC.MAIL_SIG_HINT>"
+				data-validation-rule="^[-a-zA-Z0-9\s_</>&amp;:.,;?!+()#]{1,1024}$"
+				placeholder="<TMPL_VAR CC.MAIL_SIG_EX>"
+				value="<TMPL_VAR MAIL_SIG>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label id="L_MAIL_IMG_INLINE<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.MAIL_IMG_INLINE></label>
+		</td><td>
+			<input id="CB_MAIL_IMG_INLINE<TMPL_VAR CAMNO>"
+				type="checkbox" <TMPL_VAR MAIL_IMG_INLINE_VAL>>
+			<input id="MAIL_IMG_INLINE<TMPL_VAR CAMNO>" type="hidden"
+				value="<TMPL_VAR MAIL_IMG_INLINE>">
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label id="L_MAIL_IMG_WIDTH<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.IMG_WIDTH></label>
+		</td><td>
+			<select id="MAIL_IMG_WIDTH<TMPL_VAR CAMNO>">
+				<option value="9999"><TMPL_VAR CC.UNCHANGED></option>
+				<option value="240">240px</option>
+				<option value="320">320px</option>
+				<option value="640">640px</option>
+				<option value="720">720px</option>
+				<option value="1024">1024px</option>
+				<option value="1280">1280px</option>
+				<option value="1600">1600px</option>
+				<option value="1920">1920px</option>
+				<option value="0"><TMPL_VAR CC.NO_IMG></option>
+			</select>
+		</td></tr>
+
+		<tr><td class="cam_email<TMPL_VAR CAMNO>">
+			<label id="L_MAIL_PICS<TMPL_VAR CAMNO>"
+				><TMPL_VAR CC.MAIL_PICS></label>
+		</td><td>
+			<select id="MAIL_PICS<TMPL_VAR CAMNO>">
+				<option value="10" >1 <TMPL_VAR CC.MAIL_PICS_S></option>
+				<option value="21">2 <TMPL_VAR CC.MAIL_PICS_P> 1 <TMPL_VAR CC.MAIL_PICS_TS></option>
+				<option value="22">2 <TMPL_VAR CC.MAIL_PICS_P> 2 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="23">2 <TMPL_VAR CC.MAIL_PICS_P> 3 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="24">2 <TMPL_VAR CC.MAIL_PICS_P> 4 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="31">3 <TMPL_VAR CC.MAIL_PICS_P> 1 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="32">3 <TMPL_VAR CC.MAIL_PICS_P> 2 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="33">3 <TMPL_VAR CC.MAIL_PICS_P> 3 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="34">3 <TMPL_VAR CC.MAIL_PICS_P> 4 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="41">4 <TMPL_VAR CC.MAIL_PICS_P> 1 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="42">4 <TMPL_VAR CC.MAIL_PICS_P> 2 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="43">4 <TMPL_VAR CC.MAIL_PICS_P> 3 <TMPL_VAR CC.MAIL_PICS_TP></option>
+				<option value="44">4 <TMPL_VAR CC.MAIL_PICS_P> 4 <TMPL_VAR CC.MAIL_PICS_TP></option>
+			</select>
+		</td></tr>
+	</tbodY>
+</table>
+		</fieldset>
+
+		<div class="loxoneTip">
+			<div><TMPL_VAR CC.LOXONE_TIPP></div>
+			<div>
+				<p><TMPL_VAR CC.LOXONE_CONFIG></p>
+				<p class="loxCamUrl">http://<TMPL_VAR HTTP_HOST><TMPL_VAR HTTP_PATH>/?cam=<span><TMPL_VAR CAMNO></span></p>
+				<p><TMPL_VAR CC.LOXONE_CONFIG2></p>
+			</div>
+		</div>
+ 
+		<div>
+			<button class="jump2select"
+				data-role="button" data-icon="arrow-u"
+				><TMPL_VAR CC.CAM_SELECTION_SCROLL></button>
+			<a class="goBackB" data-role="button" data-icon="back"
+				href="/admin/system/"><TMPL_VAR CC.CANCEL></a>
+			<button class="saveB" type="submit"
+				data-role="button" data-icon="check"
+				><TMPL_VAR CC.SAVE></button>
+			<a id="btntest<TMPL_VAR CAMNO>"
+				data-role="button" data-icon="video"
+				href="#"><TMPL_VAR CC.TEST></a>
+			<button id="camDelete<TMPL_VAR CAMNO>"
+				data-role="button" data-icon="delete"
+				><TMPL_VAR CC.DELETE_CAM></button>
+		</div>
+	</fieldset>
+</TMPL_LOOP>
+
+	<h1><TMPL_VAR CC.LOG_AREA></h1>
+	<fieldset id='logArea'>
+		<p><TMPL_VAR CC.LOGLEVEL> <a href='/admin/system/plugininstall.cgi'
+			title='<TMPL_VAR CC.LOGLEVEL_TT>' target='_blank'
+			><TMPL_VAR LOGLEVEL></a></p>
+		<div id="delete_log_div">
+			<button id="del_log" data-role="button">
+				<span><TMPL_VAR CC.LOG_DELETE></span>
+				<span><TMPL_VAR CC.LOG_DELETE_WAIT></span>
+				<span><TMPL_VAR CC.LOG_DELETE_OK></span>
+				<span><TMPL_VAR CC.LOG_DELETE_FAIL></span>
+			</button>
+			<a id='logview' data-role="button" target='_blank' href='/admin/system/tools/logfile.cgi?logfile=<TMPL_VAR LOGFILE>&amp;header=html&amp;format=template'><TMPL_VAR CC.LOG_VIEW></a>
+		</div>
+	</fieldset>
+</form>
+<p class="version"><TMPL_VAR VERSION></p>
+</main>
